@@ -5,21 +5,61 @@
 
 import pytest
 
-
-from yaconf import yaconf
+import yaconf
 
 
 @pytest.fixture
-def response():
+def empty():
     """Sample pytest fixture.
 
     See more at: http://doc.pytest.org/en/latest/fixture.html
     """
-    # import requests
-    # return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
+    conf = yaconf.get_file_reader('myapp')
 
+    return conf
 
-def test_content(response):
-    """Sample pytest test function with the pytest fixture as an argument."""
-    # from bs4 import BeautifulSoup
-    # assert 'GitHub' in BeautifulSoup(response.content).title.string
+@pytest.fixture
+def basic(empty):
+
+    def get_default_config():
+        return {'i': 123, 'b': 'default string'}
+
+    # Add this configuration with lowest priority
+    empty.loaders.append(get_default_config)
+
+    empty.load()
+
+    return empty
+
+def test_must_initialize(empty):
+    with pytest.raises(yaconf.ConfigError) as excinfo:
+        empty['not ready to go']
+
+    assert 'Config not loaded' in str(excinfo.value)
+
+    empty.load()
+
+def test_missing_key(empty):
+    empty.load()
+
+    with pytest.raises(KeyError):
+        empty['ready to go']
+
+    empty.get('ready to go') # has default value
+
+def test_override(basic):
+
+    def get_top_priority_config():
+        return {'b': 'other string'}
+
+    # And this one with highest priority
+    basic.loaders.insert(0, get_top_priority_config)
+
+    assert basic['i'] == 123
+    assert basic['b'] == 'default string'
+
+    # To include the new configuration source
+    basic.load()
+
+    assert basic['i'] == 123
+    assert basic['b'] == 'other string'
