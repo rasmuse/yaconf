@@ -1,10 +1,24 @@
 # yaconf
 
-yet another configuration library
+yet another Python configuration library
 
 ## Features
 
 No frills, no fuss:
+
+* Python 3.6+ and no external dependencies.
+* Single file implementation: Import the package or just copy `yaconf.py` into your project.
+* Use any configuration source: any function that returns a `dict` will do.
+* Reads JSON files by default, but `configparser` or any other parser can be dropped in with a keyword argument.
+* Hierarchical configuration: Look for configuration keys in one config source after another, e.g.,
+    - first check `.myappconf` file,
+    - then `~/.config/myapp/.myappconf`,
+    - finally fall back on defaults.
+* Sane defaults for config file paths:
+    - `~/.config/myapp/.myappconf` on Linux and MacOS
+    - `%LOCALAPPDATA%\myapp\.myappconf` on Windows
+
+## Examples
 
 ```python
 import yaconf
@@ -39,28 +53,6 @@ assert conf['b'] == 'other string'
 
 ```
 
-* Python 3.6+ and no external dependencies.
-* Single file implementation: Import the package or just copy
-* Use any configuration source: any function that returns a `dict` will do.
-* Reads JSON files by default, but `configparser` or any other parser can be dropped in with a keyword argument.
-* Hierarchical configuration: Look for configuration keys in one config source after another, e.g.,
-    - first check `.myappconf` file,
-    - then `~/.config/myapp/.myappconf`,
-    - finally fall back on defaults.
-* Sane defaults for config file paths:
-    - `~/.config/myapp/.myappconf` on Linux and MacOS
-    - `%LOCALAPPDATA%\myapp\.myappconf` on Windows
-
-
-## Develop mode
-
-```
-virtualenv -p python3.6 ~/.virtualenvs/yaconf
-source ~/.virtualenvs/yaconf/bin/activate
-pip install -r requirements_dev.txt
-pip install -e .
-```
-
 ## License
 
 Free software: MIT license
@@ -69,5 +61,5 @@ Free software: MIT license
 
 This package was created with [Cookiecutter][1] and the [`audreyr/cookiecutter-pypackage`][2] project template.
 
-[1] https://github.com/audreyr/cookiecutter
-[2] https://github.com/audreyr/cookiecutter-pypackage
+[1]: https://github.com/audreyr/cookiecutter
+[2]: https://github.com/audreyr/cookiecutter-pypackage
