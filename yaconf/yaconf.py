@@ -20,11 +20,12 @@ import functools
 PathLike = Union[Path, str]
 ConfigMapping = Mapping[Any, Any]
 Decoder = Callable[[str], ConfigMapping]
+Loader = Callable[[], ConfigMapping]
 
 class ConfigReader:
-    loaders: OrderedDict
+    loaders: OrderedDict[str, Loader]
 
-    def __init__(self, loaders: OrderedDict):
+    def __init__(self, loaders: OrderedDict[str, Loader]):
         self.loaders = loaders
         self._loaded = False
 
@@ -84,7 +85,7 @@ def get_default_paths(
     filename: Optional[PathLike] = None
     ) -> Mapping[str, PathLike]:
 
-    paths = OrderedDict()
+    paths: OrderedDict[str, PathLike] = OrderedDict()
     if filename is None:
         filename = _DEFAULT_CONFIG_FILENAME.format(app_name=app_name)
 
@@ -101,35 +102,34 @@ class ConfigError(Exception):
 
 
 class FileLoader:
-    path: PathLike
-    decoder: Decoder
-
     def __init__(self, path, decoder):
         self.path = path
         self.decoder = decoder
 
-    def __call__(self):
+    def __call__(self) -> ConfigMapping:
         try:
             with open(self.path) as f:
                 s = f.read()
+            self.decoder(s)
             return frozendict(self.decoder(s))
         except FileNotFoundError:
             return {}
         except Exception as e:
-            raise ConfigError(f'error decoding config file at {path}') from e
+            raise ConfigError(f'error decoding config file {self.path}') from e
 
     def __repr__(self):
         return f"{type(self).__name__}('{self.path}')"
 
+import typing
 
 def get_file_reader(
     app_name: str,
     filename: Optional[PathLike] = None,
-    decoder: Decoder = json.loads
+    decoder: Decoder = typing.cast(Decoder, json.loads)
     ) -> ConfigReader:
 
     paths = get_default_paths(app_name, filename)
-    loaders = OrderedDict()
+    loaders: OrderedDict[str, Loader] = OrderedDict()
     for name, path in paths.items():
         loaders[name] = FileLoader(path, decoder)
 
