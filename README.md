@@ -21,14 +21,21 @@ Add another configuration source:
 
 ```python
 def get_default_config():
-    return {'a': 123}
+    return {'i': 123, 'b': 'default string'}
 
 # Add this configuration with lowest priority
-conf.loaders['default'] = get_default_config
+conf.loaders.append(get_default_config)
+
+def get_top_priority_config():
+    return {'b': 'other string'}
+
+# And this one with highest priority
+conf.loaders.push(get_top_priority_config)
 
 # To include the new configuration source
 conf.load()
-assert conf['a'] == 123
+assert conf['i'] == 123
+assert conf['b'] == 'other string'
 
 ```
 

@@ -13,8 +13,9 @@ from typing import (
     Any,
     Union,
     Optional,
+    List,
     )
-from collections import OrderedDict
+
 import functools
 
 PathLike = Union[Path, str]
@@ -23,14 +24,13 @@ Decoder = Callable[[str], ConfigMapping]
 Loader = Callable[[], ConfigMapping]
 
 class ConfigReader:
-    loaders: OrderedDict[str, Loader]
-
-    def __init__(self, loaders: OrderedDict[str, Loader]):
-        self.loaders = loaders
+    def __init__(self, loaders: Sequence[Loader]):
+        self.loaders = list(loaders)
         self._loaded = False
 
     @property
     def levels(self):
+        self._check_loaded()
         return self._configs
 
     def _check_loaded(self):
@@ -38,11 +38,7 @@ class ConfigReader:
             raise ConfigError('Config not loaded. Call load() before reading.')
 
     def load(self):
-        self._configs = OrderedDict()
-        for level, loader in self.loaders.items():
-            self._configs[level] = loader()
-
-        self._configs = frozendict(self._configs)
+        self._configs = [loader() for loader in self.loaders]
 
     def get(self, key, default=None):
         self._check_loaded()
@@ -51,24 +47,16 @@ class ConfigReader:
         except KeyError:
             return default
 
-    def get_level(self, name):
-        self._check_loaded()
-        return self._configs[name]
-
     def __getitem__(self, key):
         self._check_loaded()
-        for d in self._configs.values():
+        for d in self._configs:
             if key in d:
                 return d[key]
 
         raise KeyError(f"key '{key}' not in any config dictionary")
 
     def __repr__(self):
-        loader_strings = (
-            f"'{name}': {loader}"
-            for name, loader in self.loaders.items()
-            )
-
+        loader_strings = map(str, self.loaders)
         return f'{type(self).__name__}([{", ".join(loader_strings)}])'
 
 
@@ -83,16 +71,17 @@ def get_default_config_dir(app_name: str) -> str:
 def get_default_paths(
     app_name: str,
     filename: Optional[PathLike] = None
-    ) -> Mapping[str, PathLike]:
+    ) -> Sequence[PathLike]:
 
-    paths: OrderedDict[str, PathLike] = OrderedDict()
     if filename is None:
         filename = _DEFAULT_CONFIG_FILENAME.format(app_name=app_name)
 
     user_config_dir = get_default_config_dir(app_name)
 
-    paths['local'] = filename
-    paths['user'] = os.path.join(user_config_dir, filename)
+    paths = [
+        filename, # first check local directory
+        os.path.join(user_config_dir, filename) # then user config directory
+        ]
 
     return paths
 
@@ -129,8 +118,6 @@ def get_file_reader(
     ) -> ConfigReader:
 
     paths = get_default_paths(app_name, filename)
-    loaders: OrderedDict[str, Loader] = OrderedDict()
-    for name, path in paths.items():
-        loaders[name] = FileLoader(path, decoder)
+    loaders = [FileLoader(path, decoder) for path in paths]
 
     return ConfigReader(loaders)
