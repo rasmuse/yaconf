@@ -20,13 +20,16 @@ PathLike = Union[Path, str]
 ConfigMapping = Mapping[Any, Any]
 Decoder = Callable[[str], ConfigMapping]
 Loader = Callable[[], ConfigMapping]
+Modifier = Callable[[ConfigMapping], Any]
 
 
 class ConfigReader(collections.abc.Mapping):
     loaders: List[Loader]
+    modify: Modifier
 
     def __init__(self, loaders: Sequence[Loader]):
         self.loaders = list(loaders)
+        self.modify = None
 
     def _check_loaded(self):
         if not hasattr(self, '_config'):
@@ -36,6 +39,9 @@ class ConfigReader(collections.abc.Mapping):
         self._config = {}
         for loader in reversed(self.loaders):
             self._config.update(loader())
+
+        if self.modify is not None:
+            self.modify(self._config)
 
     def get(self, *args, **kwargs):
         self._check_loaded()

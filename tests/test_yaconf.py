@@ -63,3 +63,24 @@ def test_override(basic):
 
     assert basic['i'] == 123
     assert basic['b'] == 'other string'
+
+def test_mapping(basic):
+    d = dict(basic)
+    assert d == {'i': 123, 'b': 'default string'}
+
+def test_modify_added(basic):
+    assert basic['i'] == 123
+    assert basic['b'] == 'default string'
+
+    def modify(d):
+        d['i'] += 3
+        del d['b']
+        d['x'] = 'new'
+
+    basic.modify = modify
+
+    assert dict(basic) == {'i': 123, 'b': 'default string'}
+
+    basic.load()
+
+    assert dict(basic) == {'i': 126, 'x': 'new'}
