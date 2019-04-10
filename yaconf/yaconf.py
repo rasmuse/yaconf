@@ -4,6 +4,7 @@ import sys
 import os
 import json
 from pathlib import Path
+import collections
 from types import MappingProxyType as frozendict
 from typing import (
     Callable,
@@ -12,6 +13,7 @@ from typing import (
     Any,
     Union,
     Optional,
+    List,
     )
 
 PathLike = Union[Path, str]
@@ -20,31 +22,34 @@ Decoder = Callable[[str], ConfigMapping]
 Loader = Callable[[], ConfigMapping]
 
 
-class ConfigReader:
+class ConfigReader(collections.abc.Mapping):
+    loaders: List[Loader]
+
     def __init__(self, loaders: Sequence[Loader]):
         self.loaders = list(loaders)
 
     def _check_loaded(self):
-        if not hasattr(self, '_configs'):
+        if not hasattr(self, '_config'):
             raise ConfigError('Config not loaded. Call load() before reading.')
 
     def load(self):
-        self._configs = [loader() for loader in self.loaders]
+        self._config = {}
+        for loader in reversed(self.loaders):
+            self._config.update(loader())
 
-    def get(self, key, default=None):
+    def get(self, *args, **kwargs):
         self._check_loaded()
-        try:
-            return self[key]
-        except KeyError:
-            return default
+        return self._config.get(*args, **kwargs)
 
     def __getitem__(self, key):
         self._check_loaded()
-        for d in self._configs:
-            if key in d:
-                return d[key]
+        return self._config[key]
 
-        raise KeyError(f"key '{key}' not in any config dictionary")
+    def __iter__(self):
+        yield from self._config
+
+    def __len__(self):
+        return len(self._config)
 
     def __repr__(self):
         loader_strings = map(str, self.loaders)
