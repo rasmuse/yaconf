@@ -23,12 +23,6 @@ Loader = Callable[[], ConfigMapping]
 class ConfigReader:
     def __init__(self, loaders: Sequence[Loader]):
         self.loaders = list(loaders)
-        self._loaded = False
-
-    @property
-    def levels(self):
-        self._check_loaded()
-        return self._configs
 
     def _check_loaded(self):
         if not hasattr(self, '_configs'):
