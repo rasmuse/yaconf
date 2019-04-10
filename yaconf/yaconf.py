@@ -18,7 +18,7 @@ from typing import (
 
 PathLike = Union[Path, str]
 ConfigMapping = Mapping[Any, Any]
-Decoder = Callable[[str], ConfigMapping]
+Parser = Callable[[str], ConfigMapping]
 Loader = Callable[[], ConfigMapping]
 Modifier = Callable[[ConfigMapping], Any]
 
@@ -95,20 +95,20 @@ class ConfigError(Exception):
 
 
 class FileLoader:
-    def __init__(self, path, decoder):
+    def __init__(self, path, parser):
         self.path = path
-        self.decoder = decoder
+        self.parser = parser
 
     def __call__(self) -> ConfigMapping:
         try:
             with open(self.path) as f:
                 s = f.read()
-            self.decoder(s)
-            return frozendict(self.decoder(s))
+            self.parser(s)
+            return frozendict(self.parser(s))
         except FileNotFoundError:
             return {}
         except Exception as e:
-            raise ConfigError(f'error decoding config file {self.path}') from e
+            raise ConfigError(f'error parsing config file {self.path}') from e
 
     def __repr__(self):
         return f"{type(self).__name__}('{self.path}')"
@@ -117,11 +117,11 @@ class FileLoader:
 def get_file_reader(
         app_name: str,
         filename: Optional[PathLike] = None,
-        decoder: Decoder = json.loads
+        parser: Parser = json.loads,
         ) -> ConfigReader:
 
     paths = get_default_paths(app_name, filename)
 
-    loaders = [FileLoader(path, decoder) for path in paths]
+    loaders = [FileLoader(path, parser) for path in paths]
 
     return ConfigReader(loaders)
