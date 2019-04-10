@@ -17,8 +17,11 @@ No frills, no fuss:
 * Sane defaults for config file paths:
     - `~/.config/myapp/.myappconf` on Linux and MacOS
     - `%LOCALAPPDATA%\myapp\.myappconf` on Windows
+* Optionally register a modifier function to arbitrarily change values after loading (e.g., change datatypes, check consistency, etc).
 
 ## Examples
+
+### Basic setup
 
 ```python
 import yaconf
@@ -31,7 +34,7 @@ conf['ready to go']
 conf.get('ready to go', default='fallback')
 ```
 
-Add another configuration source:
+### Add more configuration sources
 
 ```python
 def get_default_config():
@@ -51,6 +54,27 @@ conf.load()
 assert conf['i'] == 123
 assert conf['b'] == 'other string'
 
+```
+
+### The ConfigReader is a Mapping
+
+```python
+assert dict(conf) == {'i': 123, 'b': 'other string'}
+```
+
+
+### Add a modify function
+
+```python
+def modify(d):
+        d['i'] += 3
+        del d['b']
+        d['x'] = 'new'
+
+conf.modify = modify
+conf.load()
+
+assert dict(conf) == {'i': 126, 'x': 'new'}
 ```
 
 ## License
